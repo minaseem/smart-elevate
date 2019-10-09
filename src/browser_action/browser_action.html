@@ -1,0 +1,88 @@
+<!doctype html>
+<style type="text/css">
+	#mainPopup {
+		padding: 10px;
+		height: 200px;
+		width: 400px;
+		font-family: Helvetica, Ubuntu, Arial, sans-serif;
+	}
+	h1 {
+		font-size: 2em;
+	}
+    .mainPopup {
+        padding: 15px;
+    }
+    .mainPopup .item {
+        padding: 8px 0;
+    }
+    .mainPopup .item .title {
+        font-weight: 600;
+    }
+
+    .mainPopup .item input {
+        border: none;
+        border-bottom: 1px dashed #999;
+        font-size: 14px;
+        width: 50px;
+        font-weight: bold;
+    }
+    .mainPopup .item input:focus {
+        outline: none;
+        border-bottom-color: #0066CC;
+    }
+    .summary {
+        font-size: 14px;
+    }
+    .row {
+        display: flex;
+    }
+    .row > div {
+        flex: 1 0 0;
+    }
+    .header {
+        color: #cacaca;
+    }
+
+</style>
+<script src="./popup.js" defer></script>
+<div id="mainPopup" class="mainPopup">
+    <div class="header">
+        <h1>
+            Hi, <span id="name">...</span> !
+        </h1>
+    </div>
+    <div class="row">
+        <div>
+            <div class="item">
+                <span class="title">
+                    Average Hours:
+                </span> <span id="average">...</span>
+            </div>
+            <div class="item">
+                <span class="title">
+                    Total Days:
+                </span> <span id="totalDays"></span>
+            </div>
+            <div class="item">
+                 <span class="title">
+                 Days Remaining:
+                 </span> <span id="remainingDays"></span>
+            </div>
+        </div>
+        <div>
+            <div class="item">
+                <span class="title">
+                    Check-In:
+                </span> <span id="checkIn">...</span>
+            </div>
+            <div class="item">
+                <span class="title">
+                    ~ Checkout:
+                </span> <span id="checkout"></span>
+            </div>
+        </div>
+    </div>
+    <div class="item summary">
+        To maintain an average of <input type="text" id="averageInput" value="09:00"> hours, You need to spend <b id="newHours">...</b> hours daily going forward
+    </div>
+</div>
