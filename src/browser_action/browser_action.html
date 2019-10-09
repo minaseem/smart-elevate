@@ -1,20 +1,24 @@
 <!doctype html>
 <style type="text/css">
-	#mainPopup {
-		padding: 10px;
-		height: 200px;
-		width: 400px;
-		font-family: Helvetica, Ubuntu, Arial, sans-serif;
-	}
-	h1 {
-		font-size: 2em;
-	}
+    #mainPopup {
+        padding: 10px;
+        height: 200px;
+        width: 400px;
+        font-family: Helvetica, Ubuntu, Arial, sans-serif;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
     .mainPopup {
         padding: 15px;
     }
+
     .mainPopup .item {
         padding: 8px 0;
     }
+
     .mainPopup .item .title {
         font-weight: 600;
     }
@@ -26,23 +30,35 @@
         width: 50px;
         font-weight: bold;
     }
+
     .mainPopup .item input:focus {
         outline: none;
         border-bottom-color: #0066CC;
     }
+
     .summary {
         font-size: 14px;
     }
+
     .row {
         display: flex;
     }
+
     .row > div {
         flex: 1 0 0;
     }
+
     .header {
         color: #cacaca;
     }
 
+    footer {
+        font-size: 9px;
+        color: #ccc;
+        text-align: right;
+        margin: 10px 0 4px 0;
+        user-select: none;
+    }
 </style>
 <script src="./popup.js" defer></script>
 <div id="mainPopup" class="mainPopup">
@@ -83,6 +99,10 @@
         </div>
     </div>
     <div class="item summary">
-        To maintain an average of <input type="text" id="averageInput" value="09:00"> hours, You need to spend <b id="newHours">...</b> hours daily going forward
+        To maintain an average of <input type="text" id="averageInput" value="09:00"> hours, You need to spend <b id="newHours">...</b> hours daily
+        going forward
     </div>
+    <footer>
+        Disclaimer: This is an experiment project by Imamudin Naseem. Use it at your own risk.
+    </footer>
 </div>
