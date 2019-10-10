@@ -2,9 +2,25 @@ var port = chrome.extension.connect({
     name: "Sample Communication"
 });
 
-var userId, name;
+const popupData = { attendanceSummary: {} };
 
-function estimateAverageHours(totalWorkingDays, daysRemaining, target, currentAverage, misPunches) {
+const holidays = {
+    82019: [],
+    92019: [2, 8, 28],
+    102019: [12],
+    112019: [25]
+}
+
+const getToday = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0);
+    today.setMilliseconds(0);
+    return today;
+}
+
+function estimateAverageHours(target) {
+    const {misPunches, currentAverage} = popupData.attendanceSummary;
+    const { totalWorkingDays, daysRemaining } = getDaysSummary();
     return ((timeToHours(target) * totalWorkingDays) - timeToHours(currentAverage) * (totalWorkingDays - daysRemaining - misPunches) - (misPunches * 9)) / daysRemaining;
 }
 
@@ -22,7 +38,8 @@ const hoursToTime = time => {
 
 }
 
-const getCheckoutTime = (targetHours, todayLog) => {
+const getCheckoutTime = (targetHours) => {
+    let todayLog = popupData.todayLog;
     if (todayLog[1]) {
         let checkout = new Date(todayLog[0].split(',')[0] + " " + todayLog[1]);
         const millis = Math.round(targetHours * 60 * 60 * 1000)
@@ -37,54 +54,15 @@ const getTime = (date) => {
 }
 
 const updateCheckoutTime = (targetHours) => {
+    let todayLog = popupData.todayLog;
     const checkoutTime = getCheckoutTime(targetHours, todayLog);
     if (checkoutTime) {
         document.querySelector('#checkout').innerHTML = getTime(checkoutTime);
     }
 }
 
-
-var misPunches = 0;
-
-var todayLog;
-
-const populateData = function () {
-
-    const holidays = {
-        82019: [],
-        92019: [2, 8, 28],
-        102019: [12],
-        112019: [25]
-    }
-    var req = new XMLHttpRequest();
+const getDaysSummary = () => {
     const today = new Date();
-    let monthStartTime = (new Date(today.getFullYear(), today.getMonth(), 1)).getTime();
-    const start = Math.round(monthStartTime / 1000);
-    const end = Math.round((monthStartTime + (32 * 24 * 60 * 60 * 1000)) / 1000);
-    req.open(
-        "GET",
-        `https://elevate.darwinbox.in/attendance/attendance/getAttendanceLogCalendar/id/${userId}?start=${start}&end=${end}&_=${Date.now()}`);
-    req.onload = onResponseReceived;
-    req.send(null);
-
-    var currentAverage;
-
-    function onResponseReceived(e) {
-        const json = JSON.parse(e.currentTarget.responseText);
-        const last = json.pop();
-        misPunches = json.filter(x => x.title.indexOf('Single Punch') > -1).length;
-        currentAverage = last.attendance_summary.avg_total_work_duration;
-        document.querySelector('#average').innerHTML = currentAverage;
-        const requiredAverage = document.querySelector('#averageInput').value;
-        const targetHours = estimateAverageHours(totalWorkingDays, daysRemaining, requiredAverage, currentAverage, misPunches)
-
-        let innerHTML = hoursToTime(targetHours);
-        document.querySelector('#newHours').innerHTML = innerHTML;
-        updateCheckoutTime(targetHours);
-
-        document.querySelector('#misPunches').innerHTML = innerHTML;
-    }
-
     const getWeekdays = (year, month, day = 32) =>
         new Array(32 - new Date(year, month, day).getDate())
             .fill(1)
@@ -97,14 +75,70 @@ const populateData = function () {
     let currentMonthHolidays = holidays[today.getMonth().toString() + today.getFullYear()] || [];
     let totalWorkingDays = weekdays - (currentMonthHolidays ? currentMonthHolidays.length : 0);
     const daysRemaining = getWeekdays(today.getFullYear(), today.getMonth(), today.getDate()) - currentMonthHolidays.filter(x => x > today.getDate()).length
+    return { totalWorkingDays, daysRemaining };
+}
+
+const updateDaysSummary = () => {
+    const { totalWorkingDays, daysRemaining } = getDaysSummary();
     document.querySelector('#totalDays').innerHTML = totalWorkingDays;
     document.querySelector('#remainingDays').innerHTML = daysRemaining;
+}
+
+const updateRequiredHours = () => {
+    const targetHours = estimateAverageHours(popupData.requiredAverage)
+
+    let newHours = hoursToTime(targetHours);
+    document.querySelector('#newHours').innerHTML = newHours;
+    updateCheckoutTime(targetHours);
+}
+
+const updateCurrentAverage = () => {
+    const { currentAverage } = popupData.attendanceSummary;
+    document.querySelector('#average').innerHTML = currentAverage;
+}
+
+const populateData = function () {
+    debugger;
+    console.log("pup-->");
+    var req = new XMLHttpRequest();
+    const today = new Date();
+    let monthStartTime = (new Date(today.getFullYear(), today.getMonth(), 1)).getTime();
+    const start = Math.round(monthStartTime / 1000);
+    const end = Math.round((monthStartTime + (32 * 24 * 60 * 60 * 1000)) / 1000);
+    req.open(
+        "GET",
+        `https://elevate.darwinbox.in/attendance/attendance/getAttendanceLogCalendar/id/${popupData.userId}?start=${start}&end=${end}&_=${Date.now()}`);
+    req.onload = onResponseReceived;
+    req.send(null);
+
+    function onResponseReceived(e) {
+        debugger;
+        const json = JSON.parse(e.currentTarget.responseText);
+        const last = json.pop();
+        const misPunches = json.filter(x => x.title.indexOf('Single Punch') > -1).length;
+        const currentAverage = last.attendance_summary.avg_total_work_duration;
+        const attendanceDetails = {
+            misPunches,
+            currentAverage,
+            timestamp: getToday().getTime()
+        };
+
+        popupData.attendanceSummary = attendanceDetails;
+        updateCurrentAverage();
+        updateRequiredHours();
+
+        port.postMessage({
+            type: 'attendanceDetails',
+            data: attendanceDetails
+        });
+    }
 
 
     document.querySelector('#averageInput').addEventListener('keyup', e => {
         const val = e.target.value;
         if (/[0-2]?[0-9]:[0-5]?[0-9]/.test(val)) {
-            const targetHours = estimateAverageHours(totalWorkingDays, daysRemaining, val, currentAverage, misPunches)
+            popupData.requiredAverage = val;
+            const targetHours = estimateAverageHours(val)
             document.querySelector('#newHours').innerHTML = hoursToTime(targetHours);
             console.log(targetHours);
             updateCheckoutTime(targetHours);
@@ -114,24 +148,38 @@ const populateData = function () {
 };
 
 
+const init = () => {
+    updateDaysSummary();
+}
+
 var port = chrome.extension.connect({
     name: "Sample Communication"
 });
 
 
 port.onMessage.addListener(function (payload) {
-    todayLog = payload.todayLog;
-    console.log(todayLog);
-    userId = payload.userId;
-    name = payload.name;
-    const requiredAverage = payload.requiredAverage;
-    document.querySelector('#averageInput').value = requiredAverage;
-    document.querySelector('#checkIn').innerHTML = todayLog[1];
-    document.querySelector('#name').innerHTML = name;
-    populateData();
+    if (payload.type === 'todayLog') {
+        popupData.todayLog = payload.todayLog;
+        popupData.userId = payload.userId;
+        popupData.name = payload.name;
+        popupData.requiredAverage = payload.requiredAverage;
+        document.querySelector('#averageInput').value = popupData.requiredAverage;
+        document.querySelector('#checkIn').innerHTML = popupData.todayLog[1];
+        document.querySelector('#name').innerHTML = popupData.name;
+    } else if (payload.type === 'attendanceDetails') {
+        console.log("-->", payload.data);
+        if (payload.data && payload.data.timestamp === getToday().getTime()) {
+            popupData.attendanceSummary = payload.data;
+            updateCurrentAverage();
+            updateRequiredHours();
+        } else {
+            setTimeout(populateData, 0)
+        }
+    }
 });
 
 
+init();
 
 
 

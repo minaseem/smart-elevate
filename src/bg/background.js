@@ -18,6 +18,8 @@ const debounce = (func, delay) => {
 
 var userId, name;
 
+const appData = {};
+
 const init = async () => {
     await fetch("https://elevate.darwinbox.in/attendance")
         .then(x => x.text())
@@ -31,7 +33,6 @@ const init = async () => {
             getAttendenceLog()
                 .then(async (todayLog) => {
                     const targetHours = await getAverageHours(requiredAverage);
-                    console.log(todayLog, targetHours);
                     if (todayLog[1]) {
                         const checkoutTime = getCheckoutTime(targetHours, todayLog);
                         chrome.alarms.create("checkoutAlarm", { when: checkoutTime.getTime() })
@@ -122,13 +123,18 @@ const setAlarm = debounce(async () => {
     }
 }, 60 * 1000);
 
-const onMessage = async (avg) => {
-    requiredAverage = avg;
-    setAlarm();
+const onMessage = async (message) => {
+    if (message.type === 'attendanceDetails') {
+        appData.attendanceDetails = message.data
+    } else {
+        requiredAverage = message;
+        setAlarm();
+    }
 }
 
 chrome.extension.onConnect.addListener(function (port) {
     port.postMessage({ type: 'todayLog', todayLog: todayLog, requiredAverage: requiredAverage, userId: userId, name });
+    port.postMessage({ type: 'attendanceDetails', data: appData.attendanceDetails });
     port.onMessage.addListener(onMessage);
 })
 
@@ -187,7 +193,6 @@ const getAverageHours = (targetValue) => {
 
             const targetHours = estimateAverageHours(totalWorkingDays, daysRemaining, targetValue, currentAverage, misPunches)
 
-            // let innerHTML = hoursToTime(targetHours);
             resolve(targetHours)
         }
 
