@@ -130,8 +130,11 @@ const populateData = function () {
             data: attendanceDetails
         });
     }
+};
 
 
+const init = () => {
+    updateDaysSummary();
     document.querySelector('#averageInput').addEventListener('keyup', e => {
         const val = e.target.value;
         if (/[0-2]?[0-9]:[0-5]?[0-9]/.test(val)) {
@@ -142,11 +145,6 @@ const populateData = function () {
             port.postMessage(val);
         }
     })
-};
-
-
-const init = () => {
-    updateDaysSummary();
 }
 
 var port = chrome.extension.connect({
