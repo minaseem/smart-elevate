@@ -19,7 +19,7 @@ const getToday = () => {
 }
 
 function estimateAverageHours(target) {
-    const {misPunches, currentAverage} = popupData.attendanceSummary;
+    const { misPunches, currentAverage } = popupData.attendanceSummary;
     const { totalWorkingDays, daysRemaining } = getDaysSummary();
     return ((timeToHours(target) * totalWorkingDays) - timeToHours(currentAverage) * (totalWorkingDays - daysRemaining - misPunches) - (misPunches * 9)) / daysRemaining;
 }
@@ -98,8 +98,6 @@ const updateCurrentAverage = () => {
 }
 
 const populateData = function () {
-    debugger;
-    console.log("pup-->");
     var req = new XMLHttpRequest();
     const today = new Date();
     let monthStartTime = (new Date(today.getFullYear(), today.getMonth(), 1)).getTime();
@@ -140,7 +138,6 @@ const populateData = function () {
             popupData.requiredAverage = val;
             const targetHours = estimateAverageHours(val)
             document.querySelector('#newHours').innerHTML = hoursToTime(targetHours);
-            console.log(targetHours);
             updateCheckoutTime(targetHours);
             port.postMessage(val);
         }
@@ -167,13 +164,12 @@ port.onMessage.addListener(function (payload) {
         document.querySelector('#checkIn').innerHTML = popupData.todayLog[1];
         document.querySelector('#name').innerHTML = popupData.name;
     } else if (payload.type === 'attendanceDetails') {
-        console.log("-->", payload.data);
         if (payload.data && payload.data.timestamp === getToday().getTime()) {
             popupData.attendanceSummary = payload.data;
             updateCurrentAverage();
             updateRequiredHours();
         } else {
-            setTimeout(populateData, 0)
+            populateData();
         }
     }
 });
