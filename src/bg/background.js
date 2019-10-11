@@ -16,9 +16,7 @@ const debounce = (func, delay) => {
     }
 }
 
-var userId, name;
-
-const appData = {};
+const appData = {requiredAverage: "09:00"};
 
 const init = async () => {
     await fetch("https://elevate.darwinbox.in/attendance")
@@ -26,15 +24,15 @@ const init = async () => {
         .then(x => {
             let div = document.createElement('div')
             div.innerHTML = x;
-            userId = div.querySelector('#phpVar').value;
-            name = div.querySelector('.title-3').innerText
+            appData.userId = div.querySelector('#phpVar').value;
+            appData.name = div.querySelector('.title-3').innerText
         })
         .then(() => {
             getAttendenceLog()
                 .then(async (todayLog) => {
-                    const targetHours = await getAverageHours(requiredAverage);
+                    const targetHours = await getAverageHours(appData.requiredAverage);
                     if (todayLog[1]) {
-                        const checkoutTime = getCheckoutTime(targetHours, todayLog);
+                        const checkoutTime = getCheckoutTime(targetHours);
                         chrome.alarms.create("checkoutAlarm", { when: checkoutTime.getTime() })
                     }
                 })
@@ -64,12 +62,10 @@ chrome.alarms.create("updateCheckInInfo", {
     periodInMinutes: 60
 });
 
-var todayLog;
-var requiredAverage = "09:00";
 
 const getAttendenceLog = () => {
     const url = "https://elevate.darwinbox.in/attendance/attendance/getAttendanceLog";
-    var body = `user_id=${userId}&work_duration=1&latemark=1&overtime=1&disable_break_duration=1&disable_first_clockin=1&disable_first_clockout=1&disable_final_work_duration=1& disable_early_out=1`
+    var body = `user_id=${appData.userId}&work_duration=1&latemark=1&overtime=1&disable_break_duration=1&disable_first_clockin=1&disable_first_clockout=1&disable_final_work_duration=1& disable_early_out=1`
     return fetch(url, {
         body: body,
         method: 'POST',
@@ -86,7 +82,7 @@ const getAttendenceLog = () => {
                     return true;
                 }
             })
-            todayLog = today;
+            appData.todayLog = today;
             return today;
         })
         .catch(() => {
@@ -95,17 +91,19 @@ const getAttendenceLog = () => {
 
 
 chrome.alarms.onAlarm.addListener(async function (alarm) {
+    const todayLog = appData.todayLog;
     if (alarm.name === 'checkoutAlarm') {
         new Notification("Rest in peace!")
     } else if (alarm.name === 'updateCheckInInfo') {
         const date = todayLog ? new Date(todayLog[0].split(',')[0]) : null
         if (!date || !todayLog[1] || date.getTime() !== getToday().getTime()) {
-            userId && getAttendenceLog();
+            appData.userId && getAttendenceLog();
         }
     }
 });
 
-const getCheckoutTime = (targetHours, todayLog) => {
+const getCheckoutTime = (targetHours) => {
+    const todayLog = appData.todayLog;
     if (todayLog[1]) {
         let checkout = new Date(todayLog[0].split(',')[0] + " " + todayLog[1]);
         const millis = Math.round(targetHours * 60 * 60 * 1000)
@@ -115,10 +113,11 @@ const getCheckoutTime = (targetHours, todayLog) => {
 }
 
 const setAlarm = debounce(async () => {
+    const todayLog = appData.todayLog;
     chrome.alarms.clear("checkoutAlarm")
-    const targetHours = await getAverageHours(requiredAverage);
+    const targetHours = await getAverageHours(appData.requiredAverage);
     if (todayLog[1]) {
-        const checkoutTime = getCheckoutTime(targetHours, todayLog);
+        const checkoutTime = getCheckoutTime(targetHours);
         chrome.alarms.create("checkoutAlarm", { when: checkoutTime.getTime() })
     }
 }, 60 * 1000);
@@ -127,13 +126,14 @@ const onMessage = async (message) => {
     if (message.type === 'attendanceDetails') {
         appData.attendanceDetails = message.data
     } else {
-        requiredAverage = message;
+        appData.requiredAverage = message;
         setAlarm();
     }
 }
 
 chrome.extension.onConnect.addListener(function (port) {
-    port.postMessage({ type: 'todayLog', todayLog: todayLog, requiredAverage: requiredAverage, userId: userId, name });
+    const todayLog = appData.todayLog;
+    port.postMessage({ type: 'todayLog', todayLog: todayLog, requiredAverage: appData.requiredAverage, userId: appData.userId, name: appData.name });
     port.postMessage({ type: 'attendanceDetails', data: appData.attendanceDetails });
     port.onMessage.addListener(onMessage);
 })
@@ -166,7 +166,7 @@ const getAverageHours = (targetValue) => {
         const end = Math.round((monthStartTime + (32 * 24 * 60 * 60 * 1000)) / 1000);
         req.open(
             "GET",
-            `https://elevate.darwinbox.in/attendance/attendance/getAttendanceLogCalendar/id/${userId}?start=${start}&end=${end}&_=${Date.now()}`);
+            `https://elevate.darwinbox.in/attendance/attendance/getAttendanceLogCalendar/id/${appData.userId}?start=${start}&end=${end}&_=${Date.now()}`);
         req.onload = onResponseReceived;
         req.send(null);
 
@@ -199,3 +199,13 @@ const getAverageHours = (targetValue) => {
 
     })
 }
+
+chrome.idle.onStateChanged.addListener(x => {
+    if(x === 'active') {
+        const todayLog = appData.todayLog;
+        const date = todayLog ? new Date(todayLog[0].split(',')[0]) : null
+        if (!date || !todayLog[1] || date.getTime() !== getToday().getTime()) {
+            appData.userId && getAttendenceLog();
+        }
+    }
+})

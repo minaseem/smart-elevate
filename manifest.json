@@ -25,7 +25,8 @@
     "http://*.darwinbox.in/",
     "https://*.darwinbox.in/",
     "notifications",
-    "alarms"
+    "alarms",
+    "idle"
   ],
   "content_scripts": [
     {
