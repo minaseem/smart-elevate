@@ -16,9 +16,9 @@ const debounce = (func, delay) => {
     }
 }
 
-const appData = {requiredAverage: "09:00"};
+const appData = { requiredAverage: "09:00" };
 
-const init = async () => {
+const updateUserDetails = async () => {
     await fetch("https://elevate.darwinbox.in/attendance")
         .then(x => x.text())
         .then(x => {
@@ -28,7 +28,7 @@ const init = async () => {
             appData.name = div.querySelector('.title-3').innerText
         })
         .then(() => {
-            getAttendenceLog()
+            updateAttendenceLog()
                 .then(async (todayLog) => {
                     const targetHours = await getAverageHours(appData.requiredAverage);
                     if (todayLog[1]) {
@@ -37,6 +37,10 @@ const init = async () => {
                     }
                 })
         })
+}
+
+const init = () => {
+    updateUserDetails();
 }
 
 init();
@@ -63,7 +67,7 @@ chrome.alarms.create("updateCheckInInfo", {
 });
 
 
-const getAttendenceLog = () => {
+const updateAttendenceLog = () => {
     const url = "https://elevate.darwinbox.in/attendance/attendance/getAttendanceLog";
     var body = `user_id=${appData.userId}&work_duration=1&latemark=1&overtime=1&disable_break_duration=1&disable_first_clockin=1&disable_first_clockout=1&disable_final_work_duration=1& disable_early_out=1`
     return fetch(url, {
@@ -97,7 +101,7 @@ chrome.alarms.onAlarm.addListener(async function (alarm) {
     } else if (alarm.name === 'updateCheckInInfo') {
         const date = todayLog ? new Date(todayLog[0].split(',')[0]) : null
         if (!date || !todayLog[1] || date.getTime() !== getToday().getTime()) {
-            appData.userId && getAttendenceLog();
+            appData.userId && updateAttendenceLog();
         }
     }
 });
@@ -201,11 +205,18 @@ const getAverageHours = (targetValue) => {
 }
 
 chrome.idle.onStateChanged.addListener(x => {
-    if(x === 'active') {
+    if (x === 'active') {
         const todayLog = appData.todayLog;
         const date = todayLog ? new Date(todayLog[0].split(',')[0]) : null
         if (!date || !todayLog[1] || date.getTime() !== getToday().getTime()) {
-            appData.userId && getAttendenceLog();
+            if (appData.userId) {
+                updateAttendenceLog();
+            } else {
+                updateUserDetails()
+                    .then(() => {
+                        updateAttendenceLog();
+                    })
+            }
         }
     }
 })
