@@ -50,6 +50,9 @@
 
     .header {
         color: #cacaca;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     footer {
@@ -59,6 +62,10 @@
         margin: 10px 0 4px 0;
         user-select: none;
     }
+
+    .header a {
+        color: teal;
+    }
 </style>
 <script src="./popup.js" defer></script>
 <div id="mainPopup" class="mainPopup">
@@ -66,6 +73,7 @@
         <h1>
             Hi, <span id="name">...</span> !
         </h1>
+        <a href="https://elevate.darwinbox.in/attendance" target="_blank">Open Elevate</a>
     </div>
     <div class="row">
         <div>
