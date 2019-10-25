@@ -107,6 +107,10 @@ const updateCurrentAverage = () => {
     const { currentAverage } = popupData.attendanceSummary;
     document.querySelector('#average').innerHTML = currentAverage;
 }
+const updateMisPunches = () => {
+    const { misPunches } = popupData.attendanceSummary;
+    document.querySelector('#misPunches').innerHTML = misPunches || 0;
+}
 
 const populateData = function () {
     var req = new XMLHttpRequest();
@@ -177,6 +181,7 @@ port.onMessage.addListener(function (payload) {
             popupData.attendanceSummary = payload.data;
             updateCurrentAverage();
             updateRequiredHours();
+            updateMisPunches();
         } else {
             populateData();
         }
