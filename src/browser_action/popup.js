@@ -74,13 +74,14 @@ const updateCheckoutTime = (targetHours) => {
 
 const getDaysSummary = () => {
     const today = new Date();
-    const getWeekdays = (year, month, day = 32) =>
-        new Array(32 - new Date(year, month, day).getDate())
+    const numOfDaysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const getWeekdays = (year, month, fromDate = 1) =>
+        new Array(numOfDaysInCurrentMonth)
             .fill(1)
             .filter(
                 (id, index) =>
                     [0, 6].indexOf(
-                        new Date(year, month, index + 1).getDay()) === -1
+                        new Date(year, month, index + 1).getDay()) === -1 && index >= fromDate - 1
             ).length
     const weekdays = getWeekdays(today.getFullYear(), today.getMonth());
     let currentMonthHolidays = holidays[today.getMonth().toString() + today.getFullYear()] || [];
